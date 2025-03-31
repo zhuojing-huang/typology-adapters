@@ -17,9 +17,9 @@ limitations under the License.
 
 ## Phylogeny-Inspired and Contact-Based Adaptation: An Example of Sino-Tibetan Languages and SEA Sprachbund
 
-- This is a seminar project for Advanced Topics for NLP
-- The repository is forked from the original adapter repository 
-- Only the folder `customized_scripts_ANLP` has custonmized code for the project
+- This is a seminar project for Advanced Topics for NLP.
+- The repository is forked from the original adapter repository.
+- Only the folder `customized_scripts_ANLP` has custonmized code for the project.
 
 ### Overview
 This project investigates the effectiveness of language adapter stacking for two NLP tasks: Natural Language Inference (NLI) and Paraphrase Classification. The focus is on Southeast Asian languages and Swahili, with experiments conducted on different adapter training configurations. The primary objective is to determine whether stacking adapters based on linguistic phylogeny or contact relationships enhances downstream task performance.
