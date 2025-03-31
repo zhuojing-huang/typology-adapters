@@ -14,34 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<p align="center">
-<img style="vertical-align:middle" src="https://raw.githubusercontent.com/Adapter-Hub/adapters/main/docs/img/adapter-bert.png" width="80" />
-</p>
-<h1 align="center">
-<span><i>Adapters</i></span>
-</h1>
-
-<h3 align="center">
-A Unified Library for Parameter-Efficient and Modular Transfer Learning
-</h3>
-<h3 align="center">
-    <a href="https://adapterhub.ml">Website</a>
-    &nbsp; • &nbsp;
-    <a href="https://docs.adapterhub.ml">Documentation</a>
-    &nbsp; • &nbsp;
-    <a href="https://arxiv.org/abs/2311.11077">Paper</a>
-</h3>
-
-![Tests](https://github.com/Adapter-Hub/adapters/workflows/Tests/badge.svg)
-[![GitHub](https://img.shields.io/github/license/adapter-hub/adapters.svg?color=blue)](https://github.com/adapter-hub/adapters/blob/main/LICENSE)
-[![PyPI](https://img.shields.io/pypi/v/adapters)](https://pypi.org/project/adapters/)
-
-_Adapters_ is an add-on library to [HuggingFace's Transformers](https://github.com/huggingface/transformers), integrating [10+ adapter methods](https://docs.adapterhub.ml/overview.html) into [20+ state-of-the-art Transformer models](https://docs.adapterhub.ml/model_overview.html) with minimal coding overhead for training and inference.
-
-_Adapters_ provides a unified interface for efficient fine-tuning and modular transfer learning, supporting a myriad of features like full-precision or quantized training (e.g. [Q-LoRA, Q-Bottleneck Adapters, or Q-PrefixTuning](https://github.com/Adapter-Hub/adapters/blob/main/notebooks/QLoRA_Llama_Finetuning.ipynb)), [adapter merging via task arithmetics](https://docs.adapterhub.ml/adapter_composition.html#merging-adapters) or the composition of multiple adapters via [composition blocks](https://docs.adapterhub.ml/adapter_composition.html), allowing advanced research in parameter-efficient transfer learning for NLP tasks.
-
-> **Note**: The _Adapters_ library has replaced the [`adapter-transformers`](https://github.com/adapter-hub/adapter-transformers-legacy) package. All previously trained adapters are compatible with the new library. For transitioning, please read: https://docs.adapterhub.ml/transitioning.html.
-
 
 ## Installation
 
@@ -61,159 +33,79 @@ pip install .
 ```
 
 
-## Quick Tour
+## Phylogeny-Inspired and Contact-Based Adaptation: An Example of Sino-Tibetan Languages and SEA Sprachbund
 
-#### Load pre-trained adapters:
+- This is a seminar project for Advanced Topics for NLP
+- The repository is forked from the original adapter repository 
+- Only the folder `customized_scripts_ANLP` has custonmized code for the project
 
-```python
-from adapters import AutoAdapterModel
-from transformers import AutoTokenizer
+## Overview
+This project investigates the effectiveness of language adapter stacking for two NLP tasks: Natural Language Inference (NLI) and Paraphrase Classification. The focus is on Southeast Asian languages and Swahili, with experiments conducted on different adapter training configurations. The primary objective is to determine whether stacking adapters based on linguistic phylogeny or contact relationships enhances downstream task performance.
 
-model = AutoAdapterModel.from_pretrained("roberta-base")
-tokenizer = AutoTokenizer.from_pretrained("roberta-base")
+### Languages and Tasks
+The study includes languages from four language families:
 
-model.load_adapter("AdapterHub/roberta-base-pf-imdb", source="hf", set_active=True)
+| Family         | Genus         | Languages      |
+|--------------|--------------|-----------------|
+| Sino-Tibetan | Sinitic      | Chinese (zh)    |
+|              | Tibeto-Burman | Tibetan (bo), Burmese (my) |
+| Kra-Dai      | Tai          | Thai (th), Lao (lo) |
+| Austroasiatic | Mon-Khmer   | Vietnamese (vi), Khmer (km) |
+| Bantu        | Sabaki      | Swahili (sw) |
 
-print(model(**tokenizer("This works great!", return_tensors="pt")).logits)
-```
+The project evaluates two downstream tasks on Burmese:
+- **Natural Language Inference (NLI)**
+- **Paraphrase Classification**
 
-**[Learn More](https://docs.adapterhub.ml/loading.html)**
+### Datasets
+The following datasets are used for training and evaluation:
+- **Pre-training Dataset**: OSCAR Corpus (15,000–100,000 sentences per language)
+- 
+- **Evaluation Datasets**:
+  - **NLI**: MyXNLI dataset
+  - **Paraphrase Classification**: my_paraphrase dataset
 
-#### Adapt existing model setups:
+Performance is measured using **accuracy** on a sample of 500 test instances per task.
 
-```python
-import adapters
-from transformers import AutoModelForSequenceClassification
+### Adapter Training 
+- Example slurm script: `customized_scripts_ANLP/train_language_adp`
+Language adapters are trained using:
+- **Model**: XLM-RoBERTa Base
+- **Framework**: AdapterHub
+- **Batch Size**: 32
+- **Learning Rate**: 1e-4
+- **Epochs**: 3
+- **Configuration**: "seq_bn_inv" (invertible adapter from MAD-X)
 
-model = AutoModelForSequenceClassification.from_pretrained("t5-base")
+### Baselines and Model Variations
+The following configurations are tested:
+- **Random Baseline**: Randomly initialized adapter with untrained classification head.
+- **Task Adapter Only**: Task-specific adapter trained on English data (MNLI for NLI, MRPC for Paraphrase Classification).
+- **Mono-Lingual Adapters**: Single language-specific adapters.
+- **Multi-Lingual Adapters**: Cross-lingual adapters combining multiple languages.
+- **Phylogeny-Based Cross-Lingual Adapters**: Stacking adapters based on linguistic family hierarchy.
+- **Contact-Based Cross-Lingual Adapters**: Stacking adapters based on high lexical similarity due to language contact.
 
-adapters.init(model)
-
-model.add_adapter("my_lora_adapter", config="lora")
-model.train_adapter("my_lora_adapter")
-
-# Your regular training loop...
-```
-
-**[Learn More](https://docs.adapterhub.ml/quickstart.html)**
-
-#### Flexibly configure adapters:
-
-```python
-from adapters import ConfigUnion, PrefixTuningConfig, ParBnConfig, AutoAdapterModel
-
-model = AutoAdapterModel.from_pretrained("microsoft/deberta-v3-base")
-
-adapter_config = ConfigUnion(
-    PrefixTuningConfig(prefix_length=20),
-    ParBnConfig(reduction_factor=4),
-)
-model.add_adapter("my_adapter", config=adapter_config, set_active=True)
-```
-
-**[Learn More](https://docs.adapterhub.ml/overview.html)**
-
-#### Easily compose adapters in a single model:
-
-```python
-from adapters import AdapterSetup, AutoAdapterModel
-import adapters.composition as ac
-
-model = AutoAdapterModel.from_pretrained("roberta-base")
-
-qc = model.load_adapter("AdapterHub/roberta-base-pf-trec")
-sent = model.load_adapter("AdapterHub/roberta-base-pf-imdb")
-
-with AdapterSetup(ac.Parallel(qc, sent)):
-    print(model(**tokenizer("What is AdapterHub?", return_tensors="pt")))
-```
-
-**[Learn More](https://docs.adapterhub.ml/adapter_composition.html)**
-
-## Useful Resources
-
-HuggingFace's great documentation on getting started with _Transformers_ can be found [here](https://huggingface.co/transformers/index.html). `adapters` is fully compatible with _Transformers_.
-
-To get started with adapters, refer to these locations:
-
-- **[Colab notebook tutorials](https://github.com/Adapter-Hub/adapters/tree/main/notebooks)**, a series notebooks providing an introduction to all the main concepts of (adapter-)transformers and AdapterHub
-- **https://docs.adapterhub.ml**, our documentation on training and using adapters with _adapters_
-- **https://adapterhub.ml** to explore available pre-trained adapter modules and share your own adapters
-- **[Examples folder](https://github.com/Adapter-Hub/adapters/tree/main/examples/pytorch)** of this repository containing HuggingFace's example training scripts, many adapted for training adapters
-
-## Implemented Methods
-
-Currently, adapters integrates all architectures and methods listed below:
-
-| Method | Paper(s) | Quick Links |
-| --- | --- | --- |
-| Bottleneck adapters | [Houlsby et al. (2019)](https://arxiv.org/pdf/1902.00751.pdf)<br> [Bapna and Firat (2019)](https://arxiv.org/pdf/1909.08478.pdf)<br> [Steitz and Roth (2024)](https://openaccess.thecvf.com/content/CVPR2024/papers/Steitz_Adapters_Strike_Back_CVPR_2024_paper.pdf) | [Quickstart](https://docs.adapterhub.ml/quickstart.html), [Notebook](https://colab.research.google.com/github/Adapter-Hub/adapters/blob/main/notebooks/01_Adapter_Training.ipynb) |
-| AdapterFusion | [Pfeiffer et al. (2021)](https://aclanthology.org/2021.eacl-main.39.pdf) | [Docs: Training](https://docs.adapterhub.ml/training.html#train-adapterfusion), [Notebook](https://colab.research.google.com/github/Adapter-Hub/adapters/blob/main/notebooks/03_Adapter_Fusion.ipynb) |
-| MAD-X,<br> Invertible adapters | [Pfeiffer et al. (2020)](https://aclanthology.org/2020.emnlp-main.617/) | [Notebook](https://colab.research.google.com/github/Adapter-Hub/adapters/blob/main/notebooks/04_Cross_Lingual_Transfer.ipynb) |
-| AdapterDrop | [Rücklé et al. (2021)](https://arxiv.org/pdf/2010.11918.pdf) | [Notebook](https://colab.research.google.com/github/Adapter-Hub/adapters/blob/main/notebooks/05_Adapter_Drop_Training.ipynb) |
-| MAD-X 2.0,<br> Embedding training | [Pfeiffer et al. (2021)](https://arxiv.org/pdf/2012.15562.pdf) | [Docs: Embeddings](https://docs.adapterhub.ml/embeddings.html), [Notebook](https://colab.research.google.com/github/Adapter-Hub/adapters/blob/main/notebooks/08_NER_Wikiann.ipynb) |
-| Prefix Tuning | [Li and Liang (2021)](https://arxiv.org/pdf/2101.00190.pdf) | [Docs](https://docs.adapterhub.ml/methods.html#prefix-tuning) |
-| Parallel adapters,<br> Mix-and-Match adapters | [He et al. (2021)](https://arxiv.org/pdf/2110.04366.pdf) | [Docs](https://docs.adapterhub.ml/method_combinations.html#mix-and-match-adapters) |
-| Compacter | [Mahabadi et al. (2021)](https://arxiv.org/pdf/2106.04647.pdf) | [Docs](https://docs.adapterhub.ml/methods.html#compacter) |
-| LoRA | [Hu et al. (2021)](https://arxiv.org/pdf/2106.09685.pdf) | [Docs](https://docs.adapterhub.ml/methods.html#lora) |
-| (IA)^3 | [Liu et al. (2022)](https://arxiv.org/pdf/2205.05638.pdf) | [Docs](https://docs.adapterhub.ml/methods.html#ia-3) |
-| UniPELT | [Mao et al. (2022)](https://arxiv.org/pdf/2110.07577.pdf) | [Docs](https://docs.adapterhub.ml/method_combinations.html#unipelt) |
-| Prompt Tuning | [Lester et al. (2021)](https://aclanthology.org/2021.emnlp-main.243/) | [Docs](https://docs.adapterhub.ml/methods.html#prompt-tuning) |
-| QLoRA | [Dettmers et al. (2023)](https://arxiv.org/pdf/2305.14314.pdf) | [Notebook](https://colab.research.google.com/github/Adapter-Hub/adapters/blob/main/notebooks/QLoRA_Llama_Finetuning.ipynb) |
-| ReFT | [Wu et al. (2024)](https://arxiv.org/pdf/2404.03592) | [Docs](https://docs.adapterhub.ml/methods.html#reft) |
-| Adapter Task Arithmetics | [Chronopoulou et al. (2023)](https://arxiv.org/abs/2311.09344)<br> [Zhang et al. (2023)](https://proceedings.neurips.cc/paper_files/paper/2023/hash/299a08ee712d4752c890938da99a77c6-Abstract-Conference.html) | [Docs](https://docs.adapterhub.ml/merging_adapters.html), [Notebook](https://colab.research.google.com/github/Adapter-Hub/adapters/blob/main/notebooks/06_Task_Arithmetics.ipynb)|
+### Workflow
+1. **Download OSCAR dataset for training adapters**
+   - Run `customized_scripts_ANLP/download_oscar`. 
+   - Adjust "language" to desired languages.
+   - Before running, an authentification token should be given. 
 
 
-## Supported Models
+2. **Pre-training Adapters**
+   - Train language adapters using the OSCAR dataset with the AdapterHub framework.
+   - If using SLURM framework, submit the job by using `customized_scripts_ANLP/train_language_adp.sh`.
+   - `customized_scripts_ANLP/train_language_adp.sh` submits `customized_scripts_ANLP/run_mlm.py`.
+   
+2. **Training Task Adapters**
+   - Train task adapters on the MNLI and MRPC datasets.
+   - Submit `train_glue.sh` to your HPC, which essentially runs `customized_scripts_ANLP/run_glue.py`.
 
-We currently support the PyTorch versions of all models listed on the **[Model Overview](https://docs.adapterhub.ml/model_overview.html) page** in our documentation.
+3. **Adapter Stacking for Inference**
+   - Experiment with different stacking configurations as described above.
 
-## Developing & Contributing
-
-To get started with developing on _Adapters_ yourself and learn more about ways to contribute, please see https://docs.adapterhub.ml/contributing.html.
-
-## Citation
-
-If you use _Adapters_ in your work, please consider citing our library paper: [Adapters: A Unified Library for Parameter-Efficient and Modular Transfer Learning](https://arxiv.org/abs/2311.11077)
-
-```
-@inproceedings{poth-etal-2023-adapters,
-    title = "Adapters: A Unified Library for Parameter-Efficient and Modular Transfer Learning",
-    author = {Poth, Clifton  and
-      Sterz, Hannah  and
-      Paul, Indraneil  and
-      Purkayastha, Sukannya  and
-      Engl{\"a}nder, Leon  and
-      Imhof, Timo  and
-      Vuli{\'c}, Ivan  and
-      Ruder, Sebastian  and
-      Gurevych, Iryna  and
-      Pfeiffer, Jonas},
-    booktitle = "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
-    month = dec,
-    year = "2023",
-    address = "Singapore",
-    publisher = "Association for Computational Linguistics",
-    url = "https://aclanthology.org/2023.emnlp-demo.13",
-    pages = "149--160",
-}
-```
-
-Alternatively, for the predecessor `adapter-transformers`, the Hub infrastructure and adapters uploaded by the AdapterHub team, please consider citing our initial paper: [AdapterHub: A Framework for Adapting Transformers](https://arxiv.org/abs/2007.07779)
-
-```
-@inproceedings{pfeiffer2020AdapterHub,
-    title={AdapterHub: A Framework for Adapting Transformers},
-    author={Pfeiffer, Jonas and
-            R{\"u}ckl{\'e}, Andreas and
-            Poth, Clifton and
-            Kamath, Aishwarya and
-            Vuli{\'c}, Ivan and
-            Ruder, Sebastian and
-            Cho, Kyunghyun and
-            Gurevych, Iryna},
-    booktitle={Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing: System Demonstrations},
-    pages={46--54},
-    year={2020}
-}
-```
+4. **Evaluation**
+   - Evaluate models using MyXNLI and my_paraphrase datasets.
+   - Example code for downloading HuggingFace dataset is available at `customized_scripts_ANLP/download_hf.py`
+   - To measure performance with accuracy, run `inference_my_nli.py` for NLI and run `inference_my_pc.py` for Paraphrase Classification.
